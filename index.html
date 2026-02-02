@@ -20,11 +20,46 @@
         placeholder="Add a new task..."
         class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
+      <select
+        id="category-select"
+        class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      >
+        <option value="uncategorized">Uncategorized</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="shopping">Shopping</option>
+        <option value="health">Health</option>
+      </select>
+      <input
+        type="date"
+        id="date-input"
+        class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
       <button
         id="add-task-btn"
         class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
       >
         Add Task
+      </button>
+    </div>
+
+    <!-- Filter Section -->
+    <div id="filter-section" class="mb-4 flex items-center gap-2 flex-wrap">
+      <span class="text-sm text-gray-600 font-medium">Filter:</span>
+      <button class="filter-btn bg-blue-500 text-white px-3 py-1 rounded text-sm transition-colors" data-category="all">
+        All
+      </button>
+      <button class="filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors" data-category="work">
+        Work
+      </button>
+      <button class="filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors" data-category="personal">
+        Personal
+      </button>
+      <button class="filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors" data-category="shopping">
+        Shopping
+      </button>
+      <button class="filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300 transition-colors" data-category="health">
+        Health
       </button>
     </div>
 

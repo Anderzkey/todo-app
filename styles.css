@@ -22,3 +22,39 @@
 .delete-btn {
   transition: color 0.2s ease-out;
 }
+
+/* Category badge colors - fallback for Tailwind CDN */
+.bg-gray-100 { background-color: #f3f4f6; }
+.text-gray-700 { color: #374151; }
+.bg-blue-100 { background-color: #dbeafe; }
+.text-blue-700 { color: #1d4ed8; }
+.bg-green-100 { background-color: #dcfce7; }
+.text-green-700 { color: #15803d; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.text-purple-700 { color: #7e22ce; }
+.bg-red-100 { background-color: #fee2e2; }
+.text-red-700 { color: #b91c1c; }
+
+/* Left border for date status */
+.border-l-4 {
+  border-left-width: 4px;
+}
+
+.border-red-500 {
+  border-left-color: #ef4444;
+}
+
+.border-yellow-500 {
+  border-left-color: #eab308;
+}
+
+/* Filter button styling */
+.filter-btn {
+  transition: all 0.2s ease-out;
+  cursor: pointer;
+}
+
+/* Date input cursor */
+#date-input {
+  cursor: pointer;
+}

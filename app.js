@@ -1,5 +1,17 @@
+// Categories configuration
+const CATEGORIES = [
+  { id: 'uncategorized', label: 'Uncategorized', color: 'gray' },
+  { id: 'work', label: 'Work', color: 'blue' },
+  { id: 'personal', label: 'Personal', color: 'green' },
+  { id: 'shopping', label: 'Shopping', color: 'purple' },
+  { id: 'health', label: 'Health', color: 'red' }
+];
+
 // Global tasks array
 let tasks = [];
+
+// Global filter state
+let currentFilter = 'all';
 
 // DOM elements
 const taskInput = document.getElementById('task-input');
@@ -14,6 +26,18 @@ function loadTasks() {
   try {
     const storedTasks = localStorage.getItem('tasks');
     tasks = storedTasks ? JSON.parse(storedTasks) : [];
+
+    // Migrate old tasks to include new fields
+    tasks = tasks.map(task => ({
+      ...task,
+      category: task.category || 'uncategorized',
+      dueDate: task.dueDate || null,
+      createdAt: task.createdAt || Date.now()
+    }));
+
+    if (tasks.length > 0) {
+      saveTasks();
+    }
   } catch (e) {
     console.error('Failed to load tasks from LocalStorage:', e);
     tasks = [];
@@ -36,8 +60,10 @@ function saveTasks() {
 /**
  * Add a new task
  * @param {string} text - Task description
+ * @param {string} category - Task category
+ * @param {string} dueDate - Due date in YYYY-MM-DD format
  */
-function addTask(text) {
+function addTask(text, category = 'uncategorized', dueDate = null) {
   // Trim whitespace and check if text is not empty
   const trimmedText = text.trim();
   if (!trimmedText) {
@@ -48,7 +74,10 @@ function addTask(text) {
   const newTask = {
     id: Date.now() + Math.random(),
     text: trimmedText,
-    completed: false
+    completed: false,
+    category: category || 'uncategorized',
+    dueDate: dueDate || null,
+    createdAt: Date.now()
   };
 
   // Add to tasks array
@@ -58,8 +87,10 @@ function addTask(text) {
   saveTasks();
   renderTasks();
 
-  // Clear input field
+  // Clear input fields
   taskInput.value = '';
+  document.getElementById('category-select').value = 'uncategorized';
+  document.getElementById('date-input').value = '';
 }
 
 /**
@@ -86,24 +117,147 @@ function toggleTask(id) {
 }
 
 /**
+ * Get category object by ID
+ * @param {string} categoryId - Category ID
+ * @returns {object} Category object
+ */
+function getCategoryById(categoryId) {
+  return CATEGORIES.find(cat => cat.id === categoryId) || CATEGORIES[0];
+}
+
+/**
+ * Get date status for visual indicators
+ * @param {string} dueDate - Due date in YYYY-MM-DD format
+ * @param {boolean} completed - Task completion status
+ * @returns {string} Status: 'none', 'overdue', 'today', or 'future'
+ */
+function getDateStatus(dueDate, completed) {
+  if (!dueDate || completed) return 'none';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+
+  if (due < today) return 'overdue';
+  if (due.getTime() === today.getTime()) return 'today';
+  return 'future';
+}
+
+/**
+ * Format date for display
+ * @param {string} dateStr - Date in YYYY-MM-DD format
+ * @returns {string} Formatted date string
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+
+  if (dateOnly.getTime() === today.getTime()) {
+    return 'Today';
+  }
+
+  const options = { month: 'short', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+}
+
+/**
+ * Get filtered tasks based on current filter
+ * @returns {Array} Filtered tasks
+ */
+function getFilteredTasks() {
+  if (currentFilter === 'all') {
+    return tasks;
+  }
+  return tasks.filter(task => task.category === currentFilter);
+}
+
+/**
+ * Set the current category filter
+ * @param {string} categoryId - Category ID to filter by
+ */
+function setFilter(categoryId) {
+  currentFilter = categoryId;
+  renderTasks();
+  updateFilterButtons();
+}
+
+/**
+ * Update filter button visual states
+ */
+function updateFilterButtons() {
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach(btn => {
+    const category = btn.dataset.category;
+    if (category === currentFilter) {
+      btn.classList.remove('bg-gray-200', 'text-gray-700');
+      btn.classList.add('bg-blue-500', 'text-white');
+    } else {
+      btn.classList.remove('bg-blue-500', 'text-white');
+      btn.classList.add('bg-gray-200', 'text-gray-700');
+    }
+  });
+}
+
+/**
+ * Sort tasks by completion status and due date
+ * @param {Array} tasksToSort - Tasks array to sort
+ * @returns {Array} Sorted tasks
+ */
+function sortTasksByDate(tasksToSort) {
+  return [...tasksToSort].sort((a, b) => {
+    // Incomplete tasks first
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1;
+    }
+    // Then by due date (earliest first)
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+}
+
+/**
  * Render all tasks to the DOM
  */
 function renderTasks() {
   // Clear task list
   taskList.innerHTML = '';
 
+  const filteredTasks = getFilteredTasks();
+  const sortedTasks = sortTasksByDate(filteredTasks);
+
   // Show/hide empty state
-  if (tasks.length === 0) {
+  if (sortedTasks.length === 0) {
     emptyState.classList.remove('hidden');
+    emptyState.textContent = currentFilter === 'all'
+      ? 'No tasks yet. Add one above!'
+      : `No tasks in ${getCategoryById(currentFilter).label} category.`;
     return;
   }
   emptyState.classList.add('hidden');
 
   // Render each task
-  tasks.forEach(task => {
+  sortedTasks.forEach(task => {
     // Create task item container
     const li = document.createElement('li');
-    li.className = 'task-item flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100';
+
+    // Add date status border
+    const dateStatus = getDateStatus(task.dueDate, task.completed);
+    let borderClass = '';
+    if (dateStatus === 'overdue') {
+      borderClass = 'border-l-4 border-red-500';
+    } else if (dateStatus === 'today') {
+      borderClass = 'border-l-4 border-yellow-500';
+    }
+
+    li.className = `task-item flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 ${borderClass}`;
 
     // Create checkbox
     const checkbox = document.createElement('input');
@@ -117,6 +271,26 @@ function renderTasks() {
     taskText.className = `flex-1 text-gray-700 ${task.completed ? 'task-completed' : ''}`;
     taskText.textContent = task.text;
 
+    // Create category badge
+    const category = getCategoryById(task.category);
+    const categoryBadge = document.createElement('span');
+    categoryBadge.className = `text-xs px-2 py-1 rounded bg-${category.color}-100 text-${category.color}-700`;
+    categoryBadge.textContent = category.label;
+
+    // Create date display
+    const dateContainer = document.createElement('span');
+    if (task.dueDate) {
+      const dateText = formatDate(task.dueDate);
+      let dateClass = 'text-xs text-gray-500';
+      if (dateStatus === 'overdue') {
+        dateClass = 'text-xs text-red-600 font-semibold';
+      } else if (dateStatus === 'today') {
+        dateClass = 'text-xs text-yellow-600 font-semibold';
+      }
+      dateContainer.className = dateClass;
+      dateContainer.textContent = `📅 ${dateText}`;
+    }
+
     // Create delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn text-red-500 hover:text-red-700 font-bold px-2';
@@ -127,6 +301,10 @@ function renderTasks() {
     // Append elements to task item
     li.appendChild(checkbox);
     li.appendChild(taskText);
+    li.appendChild(categoryBadge);
+    if (task.dueDate) {
+      li.appendChild(dateContainer);
+    }
     li.appendChild(deleteBtn);
 
     // Append task item to list
@@ -138,7 +316,10 @@ function renderTasks() {
  * Handle add task button click
  */
 function handleAddTask() {
-  addTask(taskInput.value);
+  const text = taskInput.value;
+  const category = document.getElementById('category-select').value;
+  const dueDate = document.getElementById('date-input').value;
+  addTask(text, category, dueDate);
 }
 
 /**
@@ -159,4 +340,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Attach event listeners
   addTaskBtn.addEventListener('click', handleAddTask);
   taskInput.addEventListener('keypress', handleKeyPress);
+
+  // Attach filter button listeners
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setFilter(btn.dataset.category);
+    });
+  });
 });
