@@ -11,8 +11,13 @@ const emptyState = document.getElementById('empty-state');
  * Load tasks from LocalStorage on page load
  */
 function loadTasks() {
-  const storedTasks = localStorage.getItem('tasks');
-  tasks = storedTasks ? JSON.parse(storedTasks) : [];
+  try {
+    const storedTasks = localStorage.getItem('tasks');
+    tasks = storedTasks ? JSON.parse(storedTasks) : [];
+  } catch (e) {
+    console.error('Failed to load tasks from LocalStorage:', e);
+    tasks = [];
+  }
   renderTasks();
 }
 
@@ -20,7 +25,12 @@ function loadTasks() {
  * Save current tasks array to LocalStorage
  */
 function saveTasks() {
-  localStorage.setItem('tasks', JSON.stringify(tasks));
+  try {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  } catch (e) {
+    console.error('Failed to save tasks to LocalStorage:', e);
+    alert('Unable to save tasks. Your storage may be full.');
+  }
 }
 
 /**
@@ -34,9 +44,9 @@ function addTask(text) {
     return;
   }
 
-  // Create new task object
+  // Create new task object with unique ID
   const newTask = {
-    id: Date.now(),
+    id: Date.now() + Math.random(),
     text: trimmedText,
     completed: false
   };
@@ -86,9 +96,8 @@ function renderTasks() {
   if (tasks.length === 0) {
     emptyState.classList.remove('hidden');
     return;
-  } else {
-    emptyState.classList.add('hidden');
   }
+  emptyState.classList.add('hidden');
 
   // Render each task
   tasks.forEach(task => {
@@ -112,6 +121,7 @@ function renderTasks() {
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn text-red-500 hover:text-red-700 font-bold px-2';
     deleteBtn.textContent = '✕';
+    deleteBtn.setAttribute('aria-label', `Delete task: ${task.text}`);
     deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
     // Append elements to task item
