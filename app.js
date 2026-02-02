@@ -18,6 +18,8 @@ const taskInput = document.getElementById('task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
 const emptyState = document.getElementById('empty-state');
+const categorySelect = document.getElementById('category-select');
+const dateInput = document.getElementById('date-input');
 
 /**
  * Load tasks from LocalStorage on page load
@@ -38,11 +40,18 @@ function loadTasks() {
     if (tasks.length > 0) {
       saveTasks();
     }
+
+    // Restore filter state from localStorage
+    const storedFilter = localStorage.getItem('currentFilter');
+    if (storedFilter) {
+      currentFilter = storedFilter;
+    }
   } catch (e) {
     console.error('Failed to load tasks from LocalStorage:', e);
     tasks = [];
   }
   renderTasks();
+  updateFilterButtons();
 }
 
 /**
@@ -89,8 +98,8 @@ function addTask(text, category = 'uncategorized', dueDate = null) {
 
   // Clear input fields
   taskInput.value = '';
-  document.getElementById('category-select').value = 'uncategorized';
-  document.getElementById('date-input').value = '';
+  categorySelect.value = 'uncategorized';
+  dateInput.value = '';
 }
 
 /**
@@ -136,7 +145,10 @@ function getDateStatus(dueDate, completed) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate);
+
+  // Parse date as local timezone by splitting the string
+  const [year, month, day] = dueDate.split('-').map(Number);
+  const due = new Date(year, month - 1, day);
   due.setHours(0, 0, 0, 0);
 
   if (due < today) return 'overdue';
@@ -152,7 +164,10 @@ function getDateStatus(dueDate, completed) {
 function formatDate(dateStr) {
   if (!dateStr) return '';
 
-  const date = new Date(dateStr);
+  // Parse date as local timezone by splitting the string
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dateOnly = new Date(date);
@@ -183,6 +198,11 @@ function getFilteredTasks() {
  */
 function setFilter(categoryId) {
   currentFilter = categoryId;
+  try {
+    localStorage.setItem('currentFilter', categoryId);
+  } catch (e) {
+    console.error('Failed to save filter state:', e);
+  }
   renderTasks();
   updateFilterButtons();
 }
@@ -219,7 +239,14 @@ function sortTasksByDate(tasksToSort) {
     if (!a.dueDate && !b.dueDate) return 0;
     if (!a.dueDate) return 1;
     if (!b.dueDate) return -1;
-    return new Date(a.dueDate) - new Date(b.dueDate);
+
+    // Parse dates as local timezone for consistent comparison
+    const [yearA, monthA, dayA] = a.dueDate.split('-').map(Number);
+    const [yearB, monthB, dayB] = b.dueDate.split('-').map(Number);
+    const dateA = new Date(yearA, monthA - 1, dayA);
+    const dateB = new Date(yearB, monthB - 1, dayB);
+
+    return dateA - dateB;
   });
 }
 
@@ -317,8 +344,8 @@ function renderTasks() {
  */
 function handleAddTask() {
   const text = taskInput.value;
-  const category = document.getElementById('category-select').value;
-  const dueDate = document.getElementById('date-input').value;
+  const category = categorySelect.value;
+  const dueDate = dateInput.value;
   addTask(text, category, dueDate);
 }
 
@@ -328,7 +355,7 @@ function handleAddTask() {
  */
 function handleKeyPress(event) {
   if (event.key === 'Enter') {
-    addTask(taskInput.value);
+    handleAddTask();
   }
 }
 
